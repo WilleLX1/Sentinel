@@ -6,6 +6,26 @@ The idea is simple: run a lightweight monitoring agent on your VPS, then connect
 
 This project is meant to be a lightweight alternative to tools like Portainer, Uptime Kuma, Netdata, and Datadog, but built specifically for personal infrastructure where you want full control and a clean custom dashboard.
 
+## Implementation Quick Start
+
+This repository now contains the implemented Sentinel monorepo:
+
+* `agent/` - FastAPI VPS agent with API-key auth, Docker/system endpoints, health probes, rate limiting, redaction, and disabled-by-default remote actions.
+* `dashboard-backend/` - FastAPI local backend with SQLite, encrypted agent keys, polling, snapshots, alerts, health checks, notifications, backups, and WebSockets.
+* `frontend/` - React/Vite/TypeScript dashboard with server, container, log, metric, alert, health-check, notification, settings, backup, and admin views.
+
+Development startup:
+
+```bash
+cd dashboard-backend
+../.venv/Scripts/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+cd ../frontend
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The default development login is `admin` / `sentinel-admin`; change it before monitoring real infrastructure.
+
 ---
 
 ## Table of Contents

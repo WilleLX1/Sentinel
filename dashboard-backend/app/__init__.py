@@ -1,0 +1,2 @@
+"""Sentinel dashboard backend package."""
+

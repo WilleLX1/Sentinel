@@ -1,0 +1,62 @@
+services:
+  sentinel-agent:
+    build: ./agent
+    container_name: sentinel-agent
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${AGENT_PORT:-8443}:${AGENT_PORT:-8443}"
+    environment:
+      SENTINEL_API_KEY: ${SENTINEL_API_KEY:-change_this_to_a_long_random_secret}
+      SERVER_NAME: ${SERVER_NAME:-sentinel-node}
+      AGENT_HOST: 0.0.0.0
+      AGENT_PORT: ${AGENT_PORT:-8443}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTINEL_ACTIONS_ENABLED: ${SENTINEL_ACTIONS_ENABLED:-false}
+      SENTINEL_AGENT_ADMIN_KEY: ${SENTINEL_AGENT_ADMIN_KEY:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host:ro
+
+  dashboard-backend:
+    build: ./dashboard-backend
+    container_name: sentinel-dashboard-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DASHBOARD_DATABASE_URL: ${DASHBOARD_DATABASE_URL:-sqlite:///./data/sentinel.db}
+      DASHBOARD_ENCRYPTION_KEY: ${DASHBOARD_ENCRYPTION_KEY:-}
+      DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET:-change_this_to_a_long_random_secret}
+      DASHBOARD_ADMIN_USERNAME: ${DASHBOARD_ADMIN_USERNAME:-admin}
+      DASHBOARD_ADMIN_PASSWORD: ${DASHBOARD_ADMIN_PASSWORD:-sentinel-admin}
+      DASHBOARD_ADMIN_PASSWORD_HASH: ${DASHBOARD_ADMIN_PASSWORD_HASH:-}
+      FRONTEND_DIST_PATH: /app/frontend-dist
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-15}
+      METRIC_RETENTION_DAYS: ${METRIC_RETENTION_DAYS:-30}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+    volumes:
+      - ./dashboard-backend/data:/app/data
+      - ./dashboard-backend/backups:/app/backups
+      - ./frontend/dist:/app/frontend-dist:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: sentinel-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - dashboard-backend
