@@ -13,6 +13,7 @@ This repository now contains the implemented Sentinel monorepo:
 * `agent/` - FastAPI VPS agent with API-key auth, Docker/system endpoints, health probes, rate limiting, redaction, and disabled-by-default remote actions.
 * `dashboard-backend/` - FastAPI local backend with SQLite, encrypted agent keys, polling, snapshots, alerts, health checks, notifications, backups, and WebSockets.
 * `frontend/` - React/Vite/TypeScript dashboard with server, container, log, metric, alert, health-check, notification, settings, backup, and admin views.
+* `scripts/` - Linux agent setup/update helpers that generate the Tailscale Docker Compose override and can install a systemd auto-update timer.
 
 Development startup:
 
@@ -25,6 +26,21 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. The default development login is `admin` / `sentinel-admin`; change it before monitoring real infrastructure.
+
+Agent update helper on a VPS/Pi:
+
+```bash
+cd ~/Sentinel
+bash scripts/update-agent.sh
+```
+
+Optional automatic reapply:
+
+```bash
+sudo bash scripts/install-agent-autoupdate.sh
+```
+
+See `docs/agent-updates.md`.
 
 ---
 

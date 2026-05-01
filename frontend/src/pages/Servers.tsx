@@ -1,4 +1,4 @@
-import { CheckCircle, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "../api/client";
 import StatusBadge from "../components/StatusBadge";
@@ -11,6 +11,7 @@ type Server = {
   environment: string;
   notes: string;
   last_seen?: string;
+  api_key_configured: boolean;
   action_key_configured: boolean;
 };
 
@@ -19,6 +20,7 @@ const empty = { name: "", url: "", api_key: "", action_key: "", environment: "pr
 export default function Servers({ navigate }: { navigate: (route: string) => void }) {
   const [servers, setServers] = useState<Server[]>([]);
   const [form, setForm] = useState(empty);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
 
   async function load() {
@@ -31,9 +33,43 @@ export default function Servers({ navigate }: { navigate: (route: string) => voi
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    await api.post("/api/servers", form);
+    if (editingId) {
+      const payload: Record<string, string> = {
+        name: form.name,
+        url: form.url,
+        environment: form.environment,
+        notes: form.notes
+      };
+      if (form.api_key.trim()) payload.api_key = form.api_key;
+      if (form.action_key.trim()) payload.action_key = form.action_key;
+      await api.put(`/api/servers/${editingId}`, payload);
+      setMessage("Server updated");
+    } else {
+      await api.post("/api/servers", form);
+      setMessage("Server added");
+    }
     setForm(empty);
+    setEditingId(null);
     await load();
+  }
+
+  function edit(server: Server) {
+    setEditingId(server.id);
+    setForm({
+      name: server.name,
+      url: server.url,
+      api_key: "",
+      action_key: "",
+      environment: server.environment || "production",
+      notes: server.notes || ""
+    });
+    setMessage("Leave API key fields blank to keep existing secrets");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(empty);
+    setMessage("");
   }
 
   async function test(id: number) {
@@ -56,12 +92,19 @@ export default function Servers({ navigate }: { navigate: (route: string) => voi
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
       <form className="rounded-lg border border-line bg-panel p-4 shadow-sm" onSubmit={submit}>
-        <h2 className="text-lg font-semibold text-ink">Add Server</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-ink">{editingId ? "Edit Server" : "Add Server"}</h2>
+          {editingId && (
+            <button type="button" className="focus-ring rounded border border-line p-2 text-slate-600 hover:bg-slate-50" title="Cancel edit" onClick={cancelEdit}>
+              <X size={16} />
+            </button>
+          )}
+        </div>
         <div className="mt-4 space-y-3">
           <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder="Agent URL" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} required />
-          <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder="API key" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} required />
-          <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder="Action key" value={form.action_key} onChange={(e) => setForm({ ...form, action_key: e.target.value })} />
+          <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder={editingId ? "API key - leave blank to keep current" : "API key"} value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} required={!editingId} />
+          <input className="focus-ring w-full rounded border border-line px-3 py-2" placeholder={editingId ? "Action key - leave blank to keep current" : "Action key"} value={form.action_key} onChange={(e) => setForm({ ...form, action_key: e.target.value })} />
           <select className="focus-ring w-full rounded border border-line px-3 py-2" value={form.environment} onChange={(e) => setForm({ ...form, environment: e.target.value })}>
             <option value="production">production</option>
             <option value="test">test</option>
@@ -69,7 +112,8 @@ export default function Servers({ navigate }: { navigate: (route: string) => voi
           </select>
           <textarea className="focus-ring min-h-24 w-full rounded border border-line px-3 py-2" placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <button className="focus-ring inline-flex items-center gap-2 rounded bg-ink px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">
-            <Plus size={16} /> Add server
+            {editingId ? <Save size={16} /> : <Plus size={16} />}
+            {editingId ? "Save changes" : "Add server"}
           </button>
         </div>
       </form>
@@ -85,7 +129,15 @@ export default function Servers({ navigate }: { navigate: (route: string) => voi
               </button>
               <StatusBadge value={server.status} />
             </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+              <span className="rounded border border-line px-2 py-1">{server.environment}</span>
+              <span className="rounded border border-line px-2 py-1">API key {server.api_key_configured ? "set" : "missing"}</span>
+              <span className="rounded border border-line px-2 py-1">Action key {server.action_key_configured ? "set" : "not set"}</span>
+            </div>
             <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button className="focus-ring inline-flex items-center gap-2 rounded border border-line px-3 py-2 text-sm hover:bg-slate-50" onClick={() => edit(server)}>
+                <Pencil size={16} /> Edit
+              </button>
               <button className="focus-ring inline-flex items-center gap-2 rounded border border-line px-3 py-2 text-sm hover:bg-slate-50" onClick={() => test(server.id)}>
                 <CheckCircle size={16} /> Test
               </button>
@@ -103,4 +155,3 @@ export default function Servers({ navigate }: { navigate: (route: string) => voi
     </div>
   );
 }
-

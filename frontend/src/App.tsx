@@ -27,11 +27,13 @@ import ServerDetail from "./pages/ServerDetail";
 import Servers from "./pages/Servers";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Actions from "./pages/Actions";
 
 const nav = [
   ["dashboard", "Overview", LayoutDashboard],
   ["servers", "Servers", Server],
   ["containers", "Containers", Boxes],
+  ["actions", "Actions", Activity],
   ["logs", "Logs", ScrollText],
   ["metrics", "Metrics", LineChart],
   ["alerts", "Alerts", AlertTriangle],
@@ -127,6 +129,7 @@ export default function App() {
     kind === "servers" ? <Servers navigate={navigate} /> :
     kind === "server" ? <ServerDetail serverId={Number(serverRaw)} navigate={navigate} /> :
     kind === "containers" ? <Containers navigate={navigate} /> :
+    kind === "actions" ? <Actions initialServerId={serverRaw ? Number(serverRaw) : undefined} initialContainerId={containerRaw} /> :
     kind === "logs" ? <Logs initialServerId={serverRaw ? Number(serverRaw) : undefined} initialContainerId={containerRaw} /> :
     kind === "metrics" ? <Metrics /> :
     kind === "alerts" ? <Alerts /> :
@@ -177,4 +180,3 @@ export default function App() {
     </div>
   );
 }
-

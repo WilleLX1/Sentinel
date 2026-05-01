@@ -17,17 +17,18 @@ def latest_system_snapshot(session: Session, server_id: int) -> SystemSnapshot |
 
 
 def latest_container_snapshots(session: Session, server_id: int) -> list[dict]:
-    rows = session.exec(
-        select(ContainerSnapshot)
-        .where(ContainerSnapshot.server_id == server_id)
-        .order_by(desc(ContainerSnapshot.created_at))
-    ).all()
+    latest_system = latest_system_snapshot(session, server_id)
+    query = select(ContainerSnapshot).where(ContainerSnapshot.server_id == server_id)
+    if latest_system:
+        query = query.where(ContainerSnapshot.created_at >= latest_system.created_at)
+    rows = session.exec(query.order_by(desc(ContainerSnapshot.created_at))).all()
     seen: set[str] = set()
     result: list[dict] = []
     for row in rows:
-        if row.container_id in seen:
+        key = row.container_name
+        if key in seen:
             continue
-        seen.add(row.container_id)
+        seen.add(key)
         result.append(
             {
                 "id": row.container_id,
@@ -46,4 +47,3 @@ def latest_container_snapshots(session: Session, server_id: int) -> list[dict]:
             }
         )
     return result
-
